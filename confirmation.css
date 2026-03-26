@@ -1,0 +1,247 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif;
+}
+
+body {
+    background-color: #121212;
+    color: #f4f4f4;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background-color: #9b59b6;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+}
+
+.payment-info {
+    background-color: #1f1f1f;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    text-align: center;
+}
+
+/* ── Estados ── */
+.estado { display: block; }
+
+/* Carregando */
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #333;
+    border-top-color: #9b59b6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#estado-carregando p {
+    color: #a2a2a2;
+    font-size: 16px;
+}
+
+/* QR Code */
+#nome-cartao {
+    font-size: 22px;
+    color: #9b59b6;
+    margin-bottom: 10px;
+}
+
+.valor-label {
+    color: #a2a2a2;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.valor-destaque {
+    font-size: 36px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 24px;
+}
+
+.qr-wrapper {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    display: inline-block;
+    margin-bottom: 24px;
+}
+
+.qr-wrapper img {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.pix-label {
+    font-size: 13px;
+    color: #a2a2a2;
+    margin-bottom: 8px;
+}
+
+.pix-code-box {
+    display: flex;
+    align-items: center;
+    background: #2c2c2c;
+    border-radius: 8px;
+    padding: 10px 12px;
+    gap: 10px;
+    margin-bottom: 20px;
+    word-break: break-all;
+}
+
+.pix-code-box span {
+    font-size: 11px;
+    color: #ccc;
+    flex: 1;
+    text-align: left;
+}
+
+.btn-copiar {
+    background-color: #8e44ad;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.3s;
+    white-space: nowrap;
+}
+
+.btn-copiar:hover {
+    background-color: #732d91;
+}
+
+.countdown-wrapper {
+    font-size: 14px;
+    color: #a2a2a2;
+    margin-bottom: 16px;
+}
+
+#countdown {
+    color: #e67e22;
+    font-size: 18px;
+}
+
+/* Status */
+.status-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+.status-dot.pendente { background-color: #e67e22; }
+.status-dot.pago { background-color: #27ae60; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+#status-texto {
+    font-size: 14px;
+    color: #a2a2a2;
+}
+
+/* Instruções */
+.instructions {
+    background: #2c2c2c;
+    border-radius: 8px;
+    padding: 16px 20px;
+    text-align: left;
+}
+
+.instructions h3 {
+    font-size: 15px;
+    color: #9b59b6;
+    margin-bottom: 10px;
+}
+
+.instructions ol {
+    padding-left: 18px;
+}
+
+.instructions li {
+    font-size: 14px;
+    color: #a2a2a2;
+    margin-bottom: 6px;
+}
+
+/* Sucesso / Erro */
+.sucesso-icon, .erro-icon {
+    font-size: 60px;
+    margin-bottom: 16px;
+}
+
+#estado-pago h2 { color: #27ae60; margin-bottom: 10px; }
+#estado-expirado h2, #estado-erro h2 { color: #e74c3c; margin-bottom: 10px; }
+
+#estado-pago p, #estado-expirado p, #estado-erro p {
+    color: #a2a2a2;
+    margin-bottom: 20px;
+}
+
+.btn-voltar {
+    background-color: #8e44ad;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-voltar:hover { background-color: #732d91; }
+
+footer {
+    background-color: #2c2c2c;
+    color: #a2a2a2;
+    padding: 15px;
+    text-align: center;
+    font-size: 13px;
+}
+
+@media (max-width: 768px) {
+    .payment-info { padding: 24px 16px; }
+    .valor-destaque { font-size: 28px; }
+    .qr-wrapper img { width: 170px; height: 170px; }
+}

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento PIX - EXOCARDS</title>
+    <link rel="stylesheet" href="confirmation.css">
+</head>
+<body>
+    <header>
+        <h1>Pagamento com PIX</h1>
+    </header>
+
+    <main>
+        <section class="payment-info">
+
+            <!-- Estado: Carregando -->
+            <div id="estado-carregando" class="estado">
+                <div class="spinner"></div>
+                <p>Gerando seu QR Code PIX...</p>
+            </div>
+
+            <!-- Estado: QR Code pronto -->
+            <div id="estado-qrcode" class="estado" style="display:none;">
+                <h2 id="nome-cartao"></h2>
+                <p class="valor-label">Valor a pagar:</p>
+                <p class="valor-destaque">R$ <span id="valor-cartao">0,00</span></p>
+
+                <div class="qr-wrapper">
+                    <img id="qr-image" src="" alt="QR Code PIX">
+                </div>
+
+                <div class="pix-copia-cola">
+                    <p class="pix-label">PIX Copia e Cola:</p>
+                    <div class="pix-code-box">
+                        <span id="pix-code"></span>
+                        <button onclick="copiarPix()" class="btn-copiar">Copiar</button>
+                    </div>
+                </div>
+
+                <div class="countdown-wrapper">
+                    <p>QR Code expira em: <strong id="countdown">20:00</strong></p>
+                </div>
+
+                <div class="status-wrapper" id="status-wrapper">
+                    <div class="status-dot pendente"></div>
+                    <span id="status-texto">Aguardando pagamento...</span>
+                </div>
+
+                <div class="instructions">
+                    <h3>Como pagar:</h3>
+                    <ol>
+                        <li>Abra seu aplicativo bancário.</li>
+                        <li>Selecione <strong>Pagar com PIX</strong>.</li>
+                        <li>Escaneie o QR Code ou cole o código acima.</li>
+                        <li>Confirme o valor de <strong>R$ <span class="valor-inline">0,00</span></strong>.</li>
+                        <li>Pronto! Seu cartão será liberado após a confirmação.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Estado: Pago -->
+            <div id="estado-pago" class="estado" style="display:none;">
+                <div class="sucesso-icon">✅</div>
+                <h2>Pagamento Confirmado!</h2>
+                <p>Obrigado pela sua compra. Seu cartão está sendo processado.</p>
+            </div>
+
+            <!-- Estado: Expirado -->
+            <div id="estado-expirado" class="estado" style="display:none;">
+                <div class="erro-icon">⏰</div>
+                <h2>QR Code Expirado</h2>
+                <p>O tempo de pagamento expirou.</p>
+                <button onclick="window.history.back()" class="btn-voltar">Tentar novamente</button>
+            </div>
+
+            <!-- Estado: Erro -->
+            <div id="estado-erro" class="estado" style="display:none;">
+                <div class="erro-icon">❌</div>
+                <h2>Erro ao gerar pagamento</h2>
+                <p id="erro-mensagem">Não foi possível gerar o QR Code. Tente novamente.</p>
+                <button onclick="window.history.back()" class="btn-voltar">Voltar</button>
+            </div>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>Pagamento processado com segurança via PIX</p>
+    </footer>
+
+    <script>
+        // ─── CONFIG ───────────────────────────────────────────────────────
+        // Troque pela URL do seu backend no Railway após o deploy
+        const BACKEND_URL = 'https://exocards-backend.onrender.com';
+
+        // ─── INIT ─────────────────────────────────────────────────────────
+        const params = new URLSearchParams(window.location.search);
+        const valor = params.get('value');
+        const nomeCartao = params.get('name');
+
+        let paymentId = null;
+        let countdownInterval = null;
+        let statusInterval = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!valor) {
+                mostrarErro('Valor não informado.');
+                return;
+            }
+            gerarPagamento();
+        });
+
+        // ─── GERAR PAGAMENTO ──────────────────────────────────────────────
+        async function gerarPagamento() {
+            mostrarEstado('carregando');
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/criar-pagamento`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        valor: Number(valor),
+                        descricao: `EXOCARDS - ${nomeCartao || 'Cartão'}`
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    mostrarErro(data.message || 'Erro ao criar pagamento.');
+                    return;
+                }
+
+                paymentId = data.payment_id;
+
+                // Preenche UI
+                document.getElementById('nome-cartao').textContent = nomeCartao || 'Cartão';
+                document.getElementById('valor-cartao').textContent = Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                document.querySelectorAll('.valor-inline').forEach(el => {
+                    el.textContent = Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                });
+                document.getElementById('qr-image').src = data.qr_image_url;
+                document.getElementById('pix-code').textContent = data.qr_code;
+
+                mostrarEstado('qrcode');
+                iniciarCountdown(data.expires_at);
+                iniciarVerificacaoStatus();
+
+            } catch (err) {
+                console.error(err);
+                mostrarErro('Falha de conexão com o servidor. Tente novamente.');
+            }
+        }
+
+        // ─── COUNTDOWN ────────────────────────────────────────────────────
+        function iniciarCountdown(expiresAt) {
+            const expireTime = new Date(expiresAt).getTime();
+
+            countdownInterval = setInterval(() => {
+                const agora = Date.now();
+                const diff = expireTime - agora;
+
+                if (diff <= 0) {
+                    clearInterval(countdownInterval);
+                    clearInterval(statusInterval);
+                    mostrarEstado('expirado');
+                    return;
+                }
+
+                const min = Math.floor(diff / 60000);
+                const seg = Math.floor((diff % 60000) / 1000);
+                document.getElementById('countdown').textContent =
+                    `${String(min).padStart(2, '0')}:${String(seg).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // ─── VERIFICAR STATUS ─────────────────────────────────────────────
+        function iniciarVerificacaoStatus() {
+            statusInterval = setInterval(async () => {
+                if (!paymentId) return;
+
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/status-pagamento/${paymentId}`);
+                    const data = await response.json();
+
+                    if (!data.success) return;
+
+                    if (data.status === 'completed') {
+                        clearInterval(countdownInterval);
+                        clearInterval(statusInterval);
+                        mostrarEstado('pago');
+                    } else if (data.status === 'expired') {
+                        clearInterval(countdownInterval);
+                        clearInterval(statusInterval);
+                        mostrarEstado('expirado');
+                    }
+                } catch (err) {
+                    console.error('Erro ao verificar status:', err);
+                }
+            }, 5000); // verifica a cada 5 segundos
+        }
+
+        // ─── COPIAR PIX ───────────────────────────────────────────────────
+        function copiarPix() {
+            const codigo = document.getElementById('pix-code').textContent;
+            navigator.clipboard.writeText(codigo).then(() => {
+                const btn = document.querySelector('.btn-copiar');
+                btn.textContent = 'Copiado!';
+                btn.style.backgroundColor = '#27ae60';
+                setTimeout(() => {
+                    btn.textContent = 'Copiar';
+                    btn.style.backgroundColor = '';
+                }, 2000);
+            });
+        }
+
+        // ─── HELPERS ──────────────────────────────────────────────────────
+        function mostrarEstado(estado) {
+            const estados = ['carregando', 'qrcode', 'pago', 'expirado', 'erro'];
+            estados.forEach(e => {
+                document.getElementById(`estado-${e}`).style.display = e === estado ? 'block' : 'none';
+            });
+        }
+
+        function mostrarErro(msg) {
+            document.getElementById('erro-mensagem').textContent = msg;
+            mostrarEstado('erro');
+        }
+    </script>
+</body>
+</html>
